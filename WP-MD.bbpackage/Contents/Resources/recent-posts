@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 import xmlrpclib
 import sys
@@ -18,8 +18,8 @@ to the command; 10 is the default.
 '''
 
 # The blog's XMLRPC URL and username.
-url = 'http://leancrew.com/all-this/xmlrpc.php'
-user = 'drdrang'
+url = 'https://jeffvautin.com/xmlrpc.php'
+user = 'jeff'
 
 # The number of posts to return.
 postCount = 10

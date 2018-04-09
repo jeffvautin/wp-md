@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 import xmlrpclib
 import sys
@@ -25,17 +25,17 @@ but with fewer headers.
 '''
 
 # The blog's XMLRPC URL and username.
-url = 'http://leancrew.com/all-this/xmlrpc.php'
-user = 'drdrang'
+url = 'https://jeffvautin.com/xmlrpc.php'
+user = 'jeff'
 
 # Time zones. WP is trustworthy only in UTC.
 utc = pytz.utc
-myTZ = pytz.timezone('US/Central')
+myTZ = pytz.timezone('US/Eastern')
 
 # The header fields and their metaWeblog synonyms.
-hFields = [ 'Title', 'Keywords', 'Date', 'Post',
+hFields = [ 'Title', 'Categories', 'Keywords', 'Format', 'Date', 'Post',
             'Slug', 'Link', 'Status', 'Comments' ]
-wpFields = [ 'title', 'mt_keywords', 'date_created_gmt',  'postid',
+wpFields = [ 'title', 'categories', 'mt_keywords', 'wp_post_format', 'date_created_gmt',  'postid',
              'wp_slug', 'link', 'post_status', 'mt_allow_comments' ]
 h2wp = dict(zip(hFields, wpFields))
 
@@ -66,6 +66,11 @@ else:
   dt = myTZ.localize(datetime.now())
   header.update({'Date': xmlrpclib.DateTime(dt.astimezone(utc))})
 
+# If the categories are in the header, they need to be packed into an array
+if 'Categories' in header:
+  categoriesString = header['Categories']
+  header['Categories'] = categoriesString.split(", ")
+
 # Connect and upload the post.
 blog = xmlrpclib.Server(url)
 
@@ -90,6 +95,10 @@ for f in hFields:
     dt = datetime.strptime(post[h2wp[f]].value, "%Y%m%dT%H:%M:%S")
     dt = utc.localize(dt).astimezone(myTZ)
     header += "%s: %s\n" % (f, dt.strftime("%Y-%m-%d %H:%M:%S"))
+  elif f == 'Categories':
+      # list out the elements of the array
+      categories = ", ".join(post[h2wp[f]])
+      header += "%s: %s\n" % (f, categories)
   else:
     header += "%s: %s\n" % (f, post[h2wp[f]])
 print header.encode('utf8')
