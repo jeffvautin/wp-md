@@ -47,6 +47,13 @@ try:
 except:
   pass
 
+# Folder for downloading posts
+rootPath = "posts"
+try:
+  rootPath = sys.argv[2]
+except:
+  pass
+
 # Get the password from Keychain.
 pw = keyring.get_password(url, user)
 
@@ -75,8 +82,8 @@ for post in posts:
   
   yearString = dt.strftime("%Y")
   monthString = dt.strftime("%m")
-  folderPath = os.path.join("posts",yearString, monthString)
-  filePath = os.path.join("posts",yearString, monthString,post['wp_slug'] + ".md")
+  folderPath = os.path.join(rootPath,yearString, monthString)
+  filePath = os.path.join(rootPath,yearString, monthString,post['wp_slug'] + ".md")
   
   if not os.path.exists(folderPath):
     os.makedirs(folderPath)
