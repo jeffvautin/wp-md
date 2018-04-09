@@ -1,0 +1,88 @@
+#!/usr/bin/env python2
+
+import xmlrpclib
+import sys
+from datetime import datetime
+import pytz
+import keyring
+import os.path
+
+'''
+Downloads the 1000 most recent posts and writes them into files within the folder
+structure posts/YYYY/mm/slug.md. Within each file, the structure is:
+
+Title: Many happy returns
+Categories: General, Micro
+Keywords: bbedit, mac, regex, text editing, unix
+Format: standard
+Date: 2012-08-20 23:54:06
+Post: 1920
+Slug: many-happy-returns
+Link: http://www.leancrew.com/all-this/2012/08/many-happy-returns/
+Status: publish
+Comments: 0
+
+It's separated from the body of the post by one or more blank lines.
+'''
+
+# The blog's XMLRPC URL and username.
+url = 'https://jeffvautin.com/xmlrpc.php'
+user = 'jeff'
+
+# Time zones. WP is trustworthy only in UTC.
+utc = pytz.utc
+myTZ = pytz.timezone('US/Eastern')
+
+# The header fields and their metaWeblog synonyms.
+hFields = [ 'Title', 'Categories', 'Keywords', 'Format', 'Date', 'Post',
+            'Slug', 'Link', 'Status', 'Comments' ]
+wpFields = [ 'title', 'categories', 'mt_keywords', 'wp_post_format', 'date_created_gmt',  'postid',
+             'wp_slug', 'link', 'post_status', 'mt_allow_comments' ]
+h2wp = dict(zip(hFields, wpFields))
+
+# The number of posts to return.
+postCount = 1000
+try:
+  postCount = int(sys.argv[1])
+except:
+  pass
+
+# Get the password from Keychain.
+pw = keyring.get_password(url, user)
+
+# Connect.
+blog = xmlrpclib.Server(url)
+
+# Return a list of post IDs and titles.
+posts = blog.metaWeblog.getRecentPosts(0, user, pw, postCount)
+for post in posts:
+  #s = u'{1:>5}  {0:<30}'.format(post['title'][:40], post['postid'])
+  #print s.encode('utf8')
+  
+  header = ''
+  for f in hFields:
+    if f == 'Date':
+      # Change the date from UTC to local and from DateTime to string.
+      dt = datetime.strptime(post[h2wp[f]].value, "%Y%m%dT%H:%M:%S")
+      dt = utc.localize(dt).astimezone(myTZ)
+      header += "%s: %s\n" % (f, dt.strftime("%Y-%m-%d %H:%M:%S"))
+    elif f == 'Categories':
+      # list out the elements of the array
+      categories = ", ".join(post[h2wp[f]])
+      header += "%s: %s\n" % (f, categories)
+    else:
+      header += "%s: %s\n" % (f, post[h2wp[f]])
+  
+  yearString = dt.strftime("%Y")
+  monthString = dt.strftime("%m")
+  folderPath = os.path.join("posts",yearString, monthString)
+  filePath = os.path.join("posts",yearString, monthString,post['wp_slug'] + ".md")
+  
+  if not os.path.exists(folderPath):
+    os.makedirs(folderPath)
+  
+  text_file = open(filePath, "w")
+  text_file.write(header.encode('utf8'))
+  text_file.write("\n\n")
+  text_file.write(post['description'].encode('utf8'))
+  text_file.close()
